@@ -10,19 +10,19 @@ namespace BlindBoxMonitor
     {
         static readonly string URL = "http://localhost:10332";
 
-        static readonly string ContractHash = "0x2bcc9c9ad6626396f507f088c5ae06ebf6fa5efa";
+        static readonly string ContractHash = "0x0578511fc665cb1c96e3cb396c2334967b440de7";
 
         static readonly string OwnerScriptHash = "0x4578060c29f4c03f1e16c84312429d991952c94c";
 
         static void Main(string[] args)
         {
             Console.WriteLine("盲盒合约监控");
-
             Console.WriteLine("前 100 个 NFT:");
-            foreach (var item in Tokens())
+
+            foreach (var item in TokensOf())
             {
                 var tokenIdBase64 = Convert.ToBase64String(Encoding.Default.GetBytes(item));
-                Console.WriteLine(item + "\t" + tokenIdBase64);
+                Console.WriteLine($"{item,-20}\t{tokenIdBase64}");
                 //Console.WriteLine("转账：" + Transfer("0x96d5942028891de8e5d866f504b36ff5ae13ab63", tokenIdBase64));
                 
             }
@@ -33,20 +33,21 @@ namespace BlindBoxMonitor
             {
                 Console.WriteLine($"碎片{(char)('A' + i)}已开出数量: {GetTotalMint(1, i)}");
             }
-            Console.WriteLine($"金卡牌合成数量: {GetTotalMint(2, 0)}");
-            Console.WriteLine($"银卡牌合成数量: {GetTotalMint(2, 1)}");
-            Console.WriteLine($"铜卡牌合成数量: {GetTotalMint(2, 2)}");
+            Console.WriteLine($"N 卡牌合成数量: {GetTotalMint(2, 0)}");
+            Console.WriteLine($"E 卡牌合成数量: {GetTotalMint(2, 1)}");
+            Console.WriteLine($"O 卡牌合成数量: {GetTotalMint(2, 2)}");
 
             //Console.WriteLine("打开所有的盲盒");
-            //for (int i = 31; i <= 60; i++)
+            //for (int i = 1; i <= 8; i++)
             //{
-            //    var tokenId = Convert.ToBase64String(Encoding.Default.GetBytes($"Blind Box {i}"));
-            //    var hash = UnBoxing(tokenId);
-            //    Console.WriteLine("开盲盒 Blind Box" + i + "\t" + hash);
+            //    var hash = UnBoxing($"Blind Box #{i}");
+            //    Console.WriteLine("开盲盒 Blind Box #" + i + "\t" + hash);
             //}
 
-            //var hash = AirDrop("0x96d5942028891de8e5d866f504b36ff5ae13ab63", 2);
-            //Console.WriteLine("空投盲盒：" + hash);
+
+
+            var hash = AirDrop(OwnerScriptHash, 10);
+            Console.WriteLine("空投盲盒：" + hash);
 
 
             Console.ReadLine();
@@ -64,7 +65,7 @@ namespace BlindBoxMonitor
                 var tokenId = Encoding.Default.GetString(Convert.FromBase64String(item["value"].ToString()));
                 list.Add(tokenId);
             }
-            return list.OrderBy(p => p.Length).ThenBy(p => p).ToList();
+            return list.OrderBy(p => p).ToList();
         }
 
         private static List<string> TokensOf()
@@ -79,7 +80,7 @@ namespace BlindBoxMonitor
                 var tokenId = Encoding.Default.GetString(Convert.FromBase64String(item["value"].ToString()));
                 list.Add(tokenId);
             }
-            return list.OrderBy(p => p.Length).ThenBy(p => p).ToList();
+            return list.OrderBy(p => p).ToList();
         }
 
         private static string GetTotalSupply()
@@ -110,13 +111,14 @@ namespace BlindBoxMonitor
             }
             else
             {
-                return JObject.Parse(jsonResponse)["result"].ToString();
+                return JObject.Parse(jsonResponse)["result"]["exception"].ToString();
             }
         }
 
         private static string Transfer(string toAddress, string tokenId)
         {
             OpenWallet();
+            tokenId = Convert.ToBase64String(Encoding.Default.GetBytes(tokenId));
 
             var body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"invokefunction\",\"params\":[\"" + ContractHash + "\",\"transfer\",[{\"type\":\"Hash160\",\"value\":\"" + toAddress + "\"},{\"type\":\"ByteArray\",\"value\":\"" + tokenId + "\"},{\"type\":\"Integer\",\"value\":1}],[{\"account\":\"" + OwnerScriptHash + "\",\"scopes\":\"CalledByEntry\"}]]}";
 
@@ -128,7 +130,7 @@ namespace BlindBoxMonitor
             }
             else
             {
-                return JObject.Parse(jsonResponse)["result"].ToString();
+                return JObject.Parse(jsonResponse)["result"]["exception"].ToString();
             }
         }
 
@@ -149,7 +151,7 @@ namespace BlindBoxMonitor
         private static string UnBoxing(string tokenId)
         {
             OpenWallet();
-
+            tokenId = Convert.ToBase64String(Encoding.Default.GetBytes(tokenId));
             var body = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"invokefunction\",\"params\":[\"" + ContractHash + "\",\"unBoxing\",[{\"type\":\"ByteArray\",\"value\":\"" + tokenId + "\"}],[{\"account\":\"" + OwnerScriptHash + "\",\"scopes\":\"CalledByEntry\",\"allowedcontracts\":[],\"allowedgroups\":[]}]]}";
             var jsonResponse = Helper.PostWebRequest(URL, body);
 
@@ -160,7 +162,7 @@ namespace BlindBoxMonitor
             }
             else
             {
-                return JObject.Parse(jsonResponse)["result"].ToString();
+                return JObject.Parse(jsonResponse)["result"]["exception"].ToString();
             }
         }
     }
